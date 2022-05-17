@@ -2,8 +2,8 @@ from rest_framework import serializers
 
 from django.utils import timezone
 
-from sls_django.identity.models import create_authtoken, expire_authtokens
-from sls_django.identity.models import Identity
+from database.identity.models import create_authtoken, expire_authtokens
+from database.identity.models import Identity
 
 
 class AuthTokenSerializer(serializers.Serializer):
@@ -49,21 +49,10 @@ class LoginSerializer(serializers.Serializer):
         return {"token": authtoken}
 
 
-class CreateIdentitySerializer(serializers.Serializer):
-    id = serializers.CharField(source="external_id", max_length=30, read_only=True)
-    email = serializers.EmailField()
-    password = serializers.CharField(write_only=True, style={"input_type": "password"})
-    last_login = serializers.DateTimeField(read_only=True)
-    updated = serializers.DateTimeField(read_only=True)
-    created = serializers.DateTimeField(read_only=True)
-
-    def validate(self, data):
-        email = data.get("email")
-
-        if Identity.objects.filter(email=email).exists():
-            raise serializers.ValidationError({"email": "already_exists"})
-
-        return data
+class CreateIdentitySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Identity
+        fields = ("email", "password")
 
     def create(self, validated_data):
         identity = Identity(**validated_data)

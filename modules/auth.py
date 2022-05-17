@@ -1,4 +1,4 @@
-from sls_django.identity.models import AuthToken, Identity
+from database.identity.models import AuthToken, Identity
 from django.utils import timezone
 
 

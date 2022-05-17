@@ -1,19 +1,16 @@
 import logging
-import json
+import modules.sls_django
 
 from http import HTTPStatus
 
-from modules import sls_django
-from modules import cache
-from modules import parameters
-from modules import decorators
 
+from modules.decorators import action_method, generic_request_handler
 from modules.actions import Actions
 
-from sls_django.pets.models import Pet
-from sls_django.identity.models import Identity
+from database.pets.models import Pet
+from database.identity.models import Identity
 
-from sls_django.pets.serializers import (
+from database.pets.serializers import (
     PetSerializer,
     ListPetSerializer
 )
@@ -22,65 +19,76 @@ from logic import pets
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 
-
-class PetPermissions:
-    protected = [
-        Actions.ActionUpdate,
-        Actions.ActionGeneric,
-        Actions.ActionCreate,
-    ]
+@action_method(output_serializer=ListPetSerializer, protected=True)
+def list_pets(event, context=None):
+    response = pets.list_pets()
+    return response, HTTPStatus.OK
 
 
-@decorators.serialized_handler(
-    input_serializer=PetSerializer,
-    output_serializer=PetSerializer,
-    permission_class=PetPermissions,
-    allowed_actions=[
-        Actions.ActionUpdate,
-        Actions.ActionCreate,
-        Actions.ActionRetrieve,
-        Actions.ActionDelete,
-        Actions.ActionList,
-    ],
-    action_serializers={
-        Actions.ActionUpdate: PetSerializer,
-        Actions.ActionCreate: PetSerializer,
-        Actions.ActionList: ListPetSerializer,
-        Actions.ActionRetrieve: ListPetSerializer,
-    },
+@generic_request_handler(
+    methods=[list_pets]
 )
-def handler(event, context):
+def handler(event, context, response):
+    return response
 
-    action = event.get("action")
+# class PetPermissions:
+#     protected = [
+#         Actions.ActionUpdate,
+#         Actions.ActionGeneric,
+#         Actions.ActionCreate,
+#     ]
 
-    response = None
-    status = None
 
-    if action == Actions.ActionRetrieve:
-        response = pets.get_pet(pet_id=event["pet_id"])
-        status = HTTPStatus.OK
+# @serialized_handler(
+#     input_serializer=PetSerializer,
+#     output_serializer=PetSerializer,
+#     permission_class=PetPermissions,
+#     allowed_actions=[
+#         Actions.ActionUpdate,
+#         Actions.ActionCreate,
+#         Actions.ActionRetrieve,
+#         Actions.ActionDelete,
+#         Actions.ActionList,
+#     ],
+#     action_serializers={
+#         Actions.ActionUpdate: PetSerializer,
+#         Actions.ActionCreate: PetSerializer,
+#         Actions.ActionList: ListPetSerializer,
+#         Actions.ActionRetrieve: ListPetSerializer,
+#     },
+# )
+# def handler(event, context):
 
-    elif action == Actions.ActionUpdate:
-        response = pets.update_pet(
-            pet_id=event.get("pet_id"),
-            name=event.get("name")
+#     action = event.get("action")
 
-        )
-        status = HTTPStatus.OK
+#     response = None
+#     status = None
 
-    elif action == Actions.ActionCreate:
-        response = pets.create_pet(
-            name=event.get("name"),
-        )
+#     if action == Actions.ActionRetrieve:
+#         response = pets.get_pet(pet_id=event["pet_id"])
+#         status = HTTPStatus.OK
 
-        status = HTTPStatus.CREATED
+#     elif action == Actions.ActionUpdate:
+#         response = pets.update_pet(
+#             pet_id=event.get("pet_id"),
+#             name=event.get("name")
 
-    elif action == Actions.ActionDelete:
-        response = pets.delete_pet(pet_id=event["pet_id"])
-        status = HTTPStatus.NO_CONTENT
+#         )
+#         status = HTTPStatus.OK
 
-    elif action == Actions.ActionList:
-        response = pets.list_pets()
-        status = HTTPStatus.OK
+#     elif action == Actions.ActionCreate:
+#         response = pets.create_pet(
+#             name=event.get("name"),
+#         )
 
-    return (response, status)
+#         status = HTTPStatus.CREATED
+
+#     elif action == Actions.ActionDelete:
+#         response = pets.delete_pet(pet_id=event["pet_id"])
+#         status = HTTPStatus.NO_CONTENT
+
+#     elif action == Actions.ActionList:
+#         response = pets.list_pets()
+#         status = HTTPStatus.OK
+
+#     return (response, status)

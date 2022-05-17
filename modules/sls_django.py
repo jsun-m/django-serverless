@@ -4,11 +4,10 @@ import django
 
 from modules import parameters
 
-
 INSTALLED_APPS = [
     "rest_framework",
-    "sls_django.identity",
-    "sls_django.pets",
+    "database.identity",
+    "database.pets",
 ]
 
 DB_CONFIG = parameters.from_config(

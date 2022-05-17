@@ -1,8 +1,8 @@
 
 import logging
 
-from sls_django.pets.models import Pet
-from sls_django.pets.serializers import PetSerializer
+from database.pets.models import Pet
+from database.pets.serializers import PetSerializer
 
 
 logger = logging.getLogger()

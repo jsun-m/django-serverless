@@ -1,12 +1,12 @@
 import logging
+import modules.sls_django
 from http import HTTPStatus
 
-from modules import sls_django
 from modules import cache
 from modules import parameters
 from modules import decorators
 
-from sls_django.identity.serializers import CreateIdentitySerializer
+from database.identity.serializers import CreateIdentitySerializer
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

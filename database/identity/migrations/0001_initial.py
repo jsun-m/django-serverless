@@ -3,7 +3,7 @@
 from django.db import migrations, models
 import django.db.models.deletion
 import modules.utils
-import sls_django.identity.models
+import database.identity.models
 
 
 class Migration(migrations.Migration):
@@ -35,7 +35,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('external_id', models.CharField(default=modules.utils.object_id, max_length=30, unique=True)),
                 ('key', models.CharField(max_length=255, unique=True)),
-                ('expires', models.DateTimeField(default=sls_django.identity.models.six_months_from_now)),
+                ('expires', models.DateTimeField(default=database.identity.models.six_months_from_now)),
                 ('created', models.DateTimeField(auto_now_add=True)),
                 ('identity', models.ForeignKey(on_delete=django.db.models.deletion.PROTECT, to='identity.Identity')),
             ],

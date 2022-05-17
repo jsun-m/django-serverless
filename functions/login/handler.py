@@ -1,13 +1,10 @@
 import logging
-import json
-from http import HTTPStatus
+import modules.sls_django
 
-from modules import sls_django
-from modules import cache
-from modules import parameters
+from http import HTTPStatus
 from modules import decorators
 
-from sls_django.identity.serializers import LoginSerializer, OneTimeAuthTokenSerializer
+from database.identity.serializers import LoginSerializer
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

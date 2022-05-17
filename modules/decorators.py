@@ -58,6 +58,14 @@ def _action_not_permitted():
         "headers": {"Access-Control-Allow-Origin": "*"},
     }
 
+def _not_found():
+    return {
+        "statusCode": HTTPStatus.NOT_FOUND,
+        "body": json.dumps({}),
+        "headers": {"Access-Control-Allow-Origin": "*"},
+    }
+
+
 
 # naive handler; no serialization or auth
 def handler(wrapped_handler):
@@ -168,3 +176,105 @@ def serialized_handler(
         return _wrapper
 
     return _outer_wrapper
+
+
+# This decorator is wrapped around the entry point handler to forward requests to
+# A mapped method in the methods variable.
+# Actions from the Request URL maps to functions with the same name
+def generic_request_handler(methods: list):
+    def decorator(wrapped_handler):
+        def _wrapper(event, context, action_method: str):
+            method_to_use = None
+
+            for method in methods:
+                if method.__name__ == action_method:
+                    method_to_use = method
+                    break
+
+            if method_to_use is None:
+                return _not_found()
+
+            response = method_to_use(event, context)
+
+            return wrapped_handler(event, context, response)
+
+        return _wrapper
+
+    return decorator
+
+
+def action_method(input_serializer=None, output_serializer=None, protected=False):  # noqa
+    def decorator(wrapped_handler):
+        def _wrapper(event, context):
+
+            status_code = None
+
+            # Authentication data
+            identity = None
+            event_body = _parse_event_body(event)
+            event_headers = _parse_headers(event)
+
+            if protected:
+                authenticated, identity = validate_auth_token(
+                    event_headers.get("Authorization")
+                )
+
+                if not authenticated:
+                    return _unauthenticated()
+
+             # apply input serializer and save method (if implemented)
+            try:
+                if input_serializer:
+                    serializer = input_serializer(data=event_body)
+                else:
+                    # Some requests don't have an input serializer
+                    # Because it can just be a generic get request without inputs
+                    serializer = serializers.Serializer(data=event_body)
+
+                if identity:
+                    serializer.identity = identity
+
+                serializer.is_valid(raise_exception=True)
+
+                try:
+                    serializer.save()
+                    event_body = serializer.data
+                except NotImplementedError:
+                    event_body = serializer.data
+
+                if identity:
+                    event_body["identity"] = identity
+
+                response_body, status_code = wrapped_handler(event_body, context)
+
+            except serializers.ValidationError as e:
+                json_response = JsonResponse(e.__dict__, safe=False)
+                return _bad_request(validation_error=json_response.content)
+
+            # validation exceptions aren't caught here; they should be found during development
+            if output_serializer:
+
+                if isinstance(response_body, list):
+                    serializer = output_serializer(response_body, many=True)
+                else:
+                    serializer = output_serializer(response_body)
+
+                # serializer.is_valid(raise_exception=True) # TODO: validate this shit
+                response_body = serializer.data
+
+            response = {
+                "statusCode": status_code,
+                "body": json.dumps(response_body),
+                "headers": {"Access-Control-Allow-Origin": "*"},
+            }
+
+            # close database connections
+            connection.close()
+
+            return response
+
+        _wrapper.__name__ = wrapped_handler.__name__
+
+        return _wrapper
+
+    return decorator
